@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "npm ci && prisma generate && npm run build",
+    "build": "npm ci && prisma generate",
     "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
