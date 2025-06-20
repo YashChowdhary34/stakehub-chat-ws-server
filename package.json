@@ -4,7 +4,6 @@
   "main": "index.js",
   "scripts": {
     "build": "npm ci && prisma generate",
-    "start": "npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
