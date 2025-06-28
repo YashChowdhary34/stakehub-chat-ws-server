@@ -54,7 +54,15 @@ io.on("connection", (socket) => {
 
   socket.io(
     "file",
-    async ({ chatId, userId, fileName, filePath, fileType, fileUrl }) => {
+    async ({
+      chatId,
+      userId,
+      fileName,
+      filePath,
+      fileType,
+      fileUrl,
+      createdAt,
+    }) => {
       const newMessage = await prisma.message.create({
         data: {
           chat: { chat: { connect: { id: chatId } } },
@@ -64,6 +72,7 @@ io.on("connection", (socket) => {
           fileName,
           filePath,
           fileType,
+          createdAt,
         },
         select: {
           id: true,
@@ -73,6 +82,7 @@ io.on("connection", (socket) => {
           fileName: true,
           filePath: true,
           fileType: true,
+          createdAt: true,
         },
       });
 
