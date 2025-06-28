@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
     // WIP: active status
   });
 
-  socket.io("text", async ({ chatId, userId, text }) => {
+  socket.io("text", async ({ chatId, userId, text, createdAt }) => {
     // Persist to db
     const newMessage = await prisma.message.create({
       data: {
@@ -39,12 +39,14 @@ io.on("connection", (socket) => {
         sender: { connect: { id: userId } },
         type: "TEXT",
         content: text,
+        createdAt,
       },
       select: {
         id: true,
         senderId: true,
         type: true,
         content: true,
+        createdAt,
       },
     });
 
