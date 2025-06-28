@@ -24,14 +24,14 @@ app.get("/healthz", (req, res) => res.send("OK"));
 io.on("connection", (socket) => {
   console.log("New socket connection:", socket.id);
 
-  socket.on("join", async ({ chatId, isAdmin }) => {
-    const room = `chat_${chatId}_isAdmin_${isAdmin}`;
+  socket.on("join", async ({ chatId }) => {
+    const room = `chat_${chatId}`;
     socket.join(room);
     console.log(`${socket.id} joined ${room}`);
     // WIP: active status
   });
 
-  socket.io("text", async ({ chatId, userId, isAdmin, text }) => {
+  socket.io("text", async ({ chatId, userId, text }) => {
     // Persist to db
     const newMessage = await prisma.message.create({
       data: {
@@ -49,20 +49,12 @@ io.on("connection", (socket) => {
     });
 
     //Broadcast to room
-    io.to(`chat_${chatId}_isAdmin_${isAdmin}`).emit("text", newMessage);
+    io.to(`chat_${chatId}`).emit("text", newMessage);
   });
 
   socket.io(
     "file",
-    async ({
-      chatId,
-      userId,
-      isAdmin,
-      fileName,
-      filePath,
-      fileType,
-      fileUrl,
-    }) => {
+    async ({ chatId, userId, fileName, filePath, fileType, fileUrl }) => {
       const newMessage = await prisma.message.create({
         data: {
           chat: { chat: { connect: { id: chatId } } },
@@ -85,7 +77,7 @@ io.on("connection", (socket) => {
       });
 
       //Broadcast to room
-      io.to(`chat_${chatId}_isAdmin_${isAdmin}`).emit("file", newMessage);
+      io.to(`chat_${chatId}`).emit("file", newMessage);
     }
   );
 
