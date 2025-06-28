@@ -31,11 +31,11 @@ io.on("connection", (socket) => {
     // WIP: active status
   });
 
-  socket.io("text", async ({ chatId, userId, text, createdAt }) => {
+  socket.on("text", async ({ chatId, userId, text, createdAt }) => {
     // Persist to db
     const newMessage = await prisma.message.create({
       data: {
-        chat: { chat: { connect: { id: chatId } } },
+        chat: { connect: { id: chatId } },
         sender: { connect: { id: userId } },
         type: "TEXT",
         content: text,
@@ -54,20 +54,12 @@ io.on("connection", (socket) => {
     io.to(`chat_${chatId}`).emit("text", newMessage);
   });
 
-  socket.io(
+  socket.on(
     "file",
-    async ({
-      chatId,
-      userId,
-      fileName,
-      filePath,
-      fileType,
-      fileUrl,
-      createdAt,
-    }) => {
+    async ({ chatId, userId, fileName, filePath, fileType, fileUrl }) => {
       const newMessage = await prisma.message.create({
         data: {
-          chat: { chat: { connect: { id: chatId } } },
+          chat: { connect: { id: chatId } },
           sender: { connect: { id: userId } },
           type: "FILE",
           fileUrl,
