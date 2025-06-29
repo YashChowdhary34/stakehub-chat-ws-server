@@ -6,6 +6,9 @@ import { Server } from "socket.io";
 import dotenv from "dotenv";
 dotenv.config();
 
+const onlineUsers = new Set();
+let onlineAdmin = false;
+
 const prisma = new PrismaClient();
 const app = express();
 
@@ -22,24 +25,37 @@ const io = new Server(server, {
 app.get("/healthz", (req, res) => res.send("OK"));
 
 io.on("connection", (socket) => {
+  let currentUserId = null;
+  let currentIsAdmin = false;
   console.log("New socket connection:", socket.id);
 
-  socket.on("join", async ({ chatId }) => {
+  socket.on("join", async ({ chatId, userId, isAdmin }) => {
+    currentUserId = userId;
+    currentIsAdmin = isAdmin;
     const room = `chat_${chatId}`;
     socket.join(room);
+    if (!isAdmin) {
+      onlineUsers.add(userId);
+    } else {
+      onlineAdmin = true;
+    }
     console.log(`${socket.id} joined ${room}`);
-    // WIP: active status
+    // Notify presence status
+    io.emit("presence", {
+      userId,
+      isAdmin,
+      status: "online",
+    });
   });
 
-  socket.on("text", async ({ chatId, userId, text, createdAt }) => {
+  socket.on("text", async ({ chatId, senderId, text }) => {
     // Persist to db
     const newMessage = await prisma.message.create({
       data: {
         chat: { connect: { id: chatId } },
-        sender: { connect: { id: userId } },
+        sender: { connect: { id: senderId } },
         type: "TEXT",
         content: text,
-        createdAt,
       },
       select: {
         id: true,
@@ -56,17 +72,17 @@ io.on("connection", (socket) => {
 
   socket.on(
     "file",
-    async ({ chatId, userId, fileName, filePath, fileType, fileUrl }) => {
+    async ({ chatId, senderId, fileName, filePath, fileType, fileUrl }) => {
+      // Persist to db
       const newMessage = await prisma.message.create({
         data: {
           chat: { connect: { id: chatId } },
-          sender: { connect: { id: userId } },
+          sender: { connect: { id: senderId } },
           type: "FILE",
           fileUrl,
           fileName,
           filePath,
           fileType,
-          createdAt,
         },
         select: {
           id: true,
@@ -86,6 +102,18 @@ io.on("connection", (socket) => {
   );
 
   socket.on("disconnect", () => {
+    if (!currentUserId) return;
+    if (!onlineAdmin) {
+      onlineUsers.delete(currentUserId);
+    } else {
+      onlineAdmin = false;
+    }
+
+    io.emit("presence", {
+      userId: currentUserId,
+      isAdmin: currentIsAdmin,
+      status: "offline",
+    });
     console.log("Disconnected:", socket.id);
   });
 });
