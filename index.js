@@ -13,13 +13,11 @@ const prisma = new PrismaClient();
 const app = express();
 
 // Allow vercel origin
-app.use(
-  cors({ origin: [process.env.LOCALHOST_URL, process.env.FRONTEND_URL] })
-);
+app.use(cors({ origin: "http://localhost:3000" }));
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: [process.env.LOCALHOST_URL, process.env.FRONTEND_URL] },
+  cors: { origin: "http://localhost:3000" },
 });
 
 app.get("/healthz", (req, res) => res.send("OK"));
@@ -56,13 +54,21 @@ io.on("connection", (socket) => {
         sender: { connect: { id: senderId } },
         type: "TEXT",
         content: text,
+        fileUrl: null,
+        fileName: null,
+        filePath: null,
+        fileType: null,
       },
       select: {
         id: true,
         senderId: true,
         type: true,
         content: true,
-        createdAt,
+        fileUrl: true,
+        fileName: true,
+        filePath: true,
+        fileType: true,
+        createdAt: true,
       },
     });
 
@@ -79,6 +85,7 @@ io.on("connection", (socket) => {
           chat: { connect: { id: chatId } },
           sender: { connect: { id: senderId } },
           type: "FILE",
+          content: null,
           fileUrl,
           fileName,
           filePath,
@@ -88,6 +95,7 @@ io.on("connection", (socket) => {
           id: true,
           senderId: true,
           type: true,
+          content: true,
           fileUrl: true,
           fileName: true,
           filePath: true,
@@ -100,6 +108,10 @@ io.on("connection", (socket) => {
       io.to(`chat_${chatId}`).emit("file", newMessage);
     }
   );
+
+  socket.on("get-active-users", () => {
+    socket.emit("active-users", Array.from(onlineUsers));
+  });
 
   socket.on("disconnect", () => {
     if (!currentUserId) return;
